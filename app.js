@@ -1,35 +1,25 @@
-const http = require("http");
-const fs = require("fs");
+const path = require("path");
 
-const processRequest = (request, response) => {
-    const url = request.url;
-    const method = request.method;
+const express = require("express");
+const bodyParser = require("body-parser");
+const expressHandlebars = require("express-handlebars");
 
-    response.setHeader("Content-Type", "text/html");
-    if(request.url === "/") {
-        response.write("<html>");
-        response.write("<head><title>Enter message</title></head>");
-        response.write("<body><form action=\"/message\" method=\"POST\"><input type=\"text\" name=\"message\"><button type=\"submit\">Send</button></form></body>");
-        response.write("</html>");
-        return response.end();
-    }
-    if(url === "/message" && method === "POST") {
-        const body = [];
-        request.on("data", (chunk) => {
-            body.push(chunk);
-        });
-        request.on("end", () => {
-            const parsedBody = Buffer.concat(body).toString();
-            const message = parsedBody.split("=")[1];
-            fs.writeFile("message.txt", message, error => {
-                response.statusCode = 302;
-                response.setHeader("Location", "/");
-                return response.end();
-            });
-        });
-    }
-}
+const adminData = require("./routes/admin");
+const userRoutes = require("./routes/shop");
 
-const server = http.createServer(processRequest);
+const app = express();
 
-server.listen(3000);
+app.engine("handlebars", expressHandlebars.create({layoutsDir: "views/layouts", defaultLayout: "main"}).engine);
+app.set("view engine", "ejs");
+app.set("vaews", "views");
+
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(express.static(path.join(__dirname, "public")));
+
+app.use("/admin", adminData.routes);
+app.use(userRoutes);
+app.use((request, response, next) => {
+    response.status(404).render("404", {pageTitle: "Page not found"});
+});
+
+app.listen(3000);
