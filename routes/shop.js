@@ -4,11 +4,13 @@ const express = require("express");
 
 const router = express.Router();
 
-const adminData = require("../routes/admin");
+const productsController = require("../controllers/shop");
 
-router.get("/", (request, response, next) => {
-    const products = adminData.products;
-    response.render("shop", {products: products, pageTitle: "Shop", path: "/", hasProducts: products.length > 0, productCSS: true, activeShop: true});
-});
+router.get("/", productsController.getIndex);
+router.get("/products", productsController.getProducts);
+router.get("/products/:productId", productsController.getProduct);
+router.get("/cart", productsController.getCart);
+router.get("/orders", productsController.getOrders);
+router.get("/checkout", productsController.getCheckout);
 
 module.exports = router;
