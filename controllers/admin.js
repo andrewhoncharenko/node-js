@@ -10,8 +10,12 @@ exports.postAddProduct = (request, response, next) => {
     const description = request.body.description;
     const product = new Product(null, title, imageUrl, price, description);
     
-    product.save();
-    response.redirect("/");
+    product.save().then(() => {
+        response.redirect("/")
+    })
+    .catch(err => {
+        console.log(err);
+    });
 };
 exports.getEditProduct = (request, response, next) => {
     const editMode = request.query.edit;
@@ -20,11 +24,14 @@ exports.getEditProduct = (request, response, next) => {
     if(!editMode) {
         return response.redirect("/");
     }
-    Product.findById(productId, (product) => {
-        if(!product) {
+    Product.findById(productId).then(([productResult]) => {
+        if(productResult.length > 0) {
+            const product = productResult[0];
+            response.render("admin/edit-product", {pageTitle: "Edit Product", path: "/admin/edit-product", product: product});
+        }
+        else {
             response.redirect("/");
         }
-        response.render("admin/edit-product", {pageTitle: "Edit Product", path: "/admin/edit-product", editing: editMode, product: product});
     });
 };
 exports.postEditProduct = (request, response, next) => {
@@ -41,16 +48,24 @@ exports.postEditProduct = (request, response, next) => {
         updatedDescription
     );
 
-    updatedProduct.save();
-    response.redirect("/admin/products");
+    updatedProduct.save()
+    .then(() => {
+        response.redirect("/admin/products");
+    })
+    .catch(err => console.log(err));
 };
 exports.postDeleteProduct = (request, response, next) => {
     const productId = request.body.productId;
-    Product.deleteById(productId);
-    response.redirect("/admin/products");
+    Product.deleteById(productId).then( () => {
+        response.redirect("/admin/products");
+    });
 };
 exports.getProducts = (request, response, next) => {
-    Product.getAll((products) => {
+    Product.getAll().then(result => {
+        const products = result[0];
         response.render("admin/products", {products: products, pageTitle: "Products", path: "/admin/products"});
+    })
+    .catch(err => {
+        console.log(err)
     });
 };

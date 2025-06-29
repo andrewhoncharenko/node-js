@@ -2,19 +2,21 @@ const Product = require("../models/product");
 const Cart = require("../models/cart");
 
 exports.getIndex = (request, response, next) => {
-    Product.getAll((products) => {
-        response.render("shop/index", {products: products, pageTitle: "Shop", path: "/", hasProducts: products.length > 0, productCSS: true, activeShop: true});
+    Product.getAll().then(result => {
+        const products = result[0];
+        response.render("shop/index", {products: products, pageTitle: "Shop", path: "/"});
     });
 };
 exports.getProducts = (request, response, next) => {
-    Product.getAll((products) => {
-        response.render("shop/product-list", {products: products, pageTitle: "Shop", path: "/products", hasProducts: products.length > 0, productCSS: true, activeShop: true});
+    Product.getAll().then(result => {
+        response.render("shop/product-list", {products: result[0], pageTitle: "Shop", path: "/products"});
     });
 };
 exports.getProduct = (request, response, next) => {
     const productId = request.params.productId;
-    Product.findById(productId, product => {
-        response.render("shop/product-detail", {pageTitle: product.title, product: product, path: product.id});
+    Product.findById(productId).then(result => {
+        const product = result[0];
+        response.render("shop/product-detail", {pageTitle: product.title, product: product[0], path: product[0].id});
     });
 };
 exports.getCart = (request, response, next) => {
