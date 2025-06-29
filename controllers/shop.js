@@ -1,8 +1,8 @@
 const Product = require("../models/product");
+const Cart = require("../models/cart");
 
 exports.getIndex = (request, response, next) => {
     Product.getAll((products) => {
-        console.log(products);
         response.render("shop/index", {products: products, pageTitle: "Shop", path: "/", hasProducts: products.length > 0, productCSS: true, activeShop: true});
     });
 };
@@ -19,6 +19,13 @@ exports.getProduct = (request, response, next) => {
 };
 exports.getCart = (request, response, next) => {
     response.render("shop/cart", {pageTitle: "Your cart", path: "/cart"});
+};
+exports.postCart = (request, response, next) => {
+    const productId = request.body.productId;
+    Product.findById(productId, (product) => {
+        Cart.addToCart(productId, product.price);
+    });
+    response.redirect('/');
 };
 exports.getOrders = (request, response, next) => {
     response.render("shop/orders", {pageTitle: "Your orders", path: "/orders"});
