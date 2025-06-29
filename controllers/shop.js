@@ -18,14 +18,32 @@ exports.getProduct = (request, response, next) => {
     });
 };
 exports.getCart = (request, response, next) => {
-    response.render("shop/cart", {pageTitle: "Your cart", path: "/cart"});
+    Cart.getCart(cart => {
+        Product.getAll(products => {
+            const cartProducts = [];
+            for(product of products) {
+                const cartProductData = cart.products.find(cartProduct => cartProduct.id === product.id);
+                if(cartProductData) {
+                    cartProducts.push({productData: product, quantity: cartProductData.quantity});
+                }
+            }
+            response.render("shop/cart", {pageTitle: "Your cart", path: "/cart", products: cartProducts});
+        });
+    });
 };
 exports.postCart = (request, response, next) => {
     const productId = request.body.productId;
-    Product.findById(productId, (product) => {
+    Product.findById(productId, product => {
         Cart.addToCart(productId, product.price);
     });
     response.redirect('/');
+};
+exports.postCartDeleteProduct = (request, response, next) => {
+    const productId = request.body.productId;
+    Product.findById(productId, product => {
+        Cart.deleteProduct(productId, product.price);
+        response.redirect("/cart");
+    })
 };
 exports.getOrders = (request, response, next) => {
     response.render("shop/orders", {pageTitle: "Your orders", path: "/orders"});
