@@ -9,7 +9,12 @@ exports.postAddProduct = (request, response, next) => {
     const imageUrl = request.body.imageUrl;
     const price = request.body.price;
     const description = request.body.description;
-    Product.create({title : title, imageUrl: imageUrl, price: price, description : description})
+    request.user.createProduct({
+        title: title,
+        imageUrl: imageUrl,
+        price: price,
+        description : description
+    })
     .then(() => {
         response.redirect("/admin/products");
     })
@@ -24,7 +29,7 @@ exports.getEditProduct = (request, response, next) => {
     if(!editMode) {
         return response.redirect("/");
     }
-    Product.findAll({where: {id: productId}}).then(products => {
+    request.user.getProducts({where: {id: productId}}).then(products => {
         if(products.length > 0) {
             const product = products[0];
             response.render("admin/edit-product", {pageTitle: "Edit Product", path: "/admin/edit-product", product: product});
@@ -70,7 +75,7 @@ exports.postDeleteProduct = (request, response, next) => {
     })
 };
 exports.getProducts = (request, response, next) => {
-    Product.findAll().then(products => {
+    request.user.getProducts().then(products => {
         response.render("admin/products", {products: products, pageTitle: "Products", path: "/admin/products"});
     })
     .catch(err => {
