@@ -1,4 +1,3 @@
-const { where } = require("sequelize");
 const Product = require("../models/product");
 
 exports.getAddProduct = (request, response, next) => {
@@ -9,12 +8,8 @@ exports.postAddProduct = (request, response, next) => {
     const imageUrl = request.body.imageUrl;
     const price = request.body.price;
     const description = request.body.description;
-    request.user.createProduct({
-        title: title,
-        imageUrl: imageUrl,
-        price: price,
-        description : description
-    })
+    const product = new Product(title, price, description, imageUrl, null, request.user._id);
+    product.save()
     .then(() => {
         response.redirect("/admin/products");
     })
@@ -29,9 +24,8 @@ exports.getEditProduct = (request, response, next) => {
     if(!editMode) {
         return response.redirect("/");
     }
-    request.user.getProducts({where: {id: productId}}).then(products => {
-        if(products.length > 0) {
-            const product = products[0];
+    Product.findById(productId).then(product => {
+        if(product) {
             response.render("admin/edit-product", {pageTitle: "Edit Product", path: "/admin/edit-product", product: product});
         }
         else {
@@ -45,16 +39,9 @@ exports.postEditProduct = (request, response, next) => {
     const updatedImageUrl = request.body.imageUrl;
     const updatedPrice = request.body.price;
     const updatedDescription = request.body.description;
+    const product = new Product(updatedTitle, updatedPrice, updatedDescription, updatedImageUrl, productId);
 
-    Product.findAll({ where: { id: productId} })
-    .then(products => {
-        const product = products[0];
-        product.title = updatedTitle;
-        product.price = updatedPrice;
-        product.imageUrl = updatedImageUrl;
-        product.description = updatedDescription;
-        return product.save();
-    })
+    product.save()
     .then(() => {
         response.redirect("/admin/products");
     })
@@ -62,11 +49,7 @@ exports.postEditProduct = (request, response, next) => {
 };
 exports.postDeleteProduct = (request, response, next) => {
     const productId = request.body.productId;
-    Product.findAll({ where: { id: productId} })
-    .then(products => {
-        const product = products[0];
-        return product.destroy();
-    })
+    Product.deleteById(productId)
     .then(() => {
         response.redirect("/admin/products");
     })
@@ -75,7 +58,8 @@ exports.postDeleteProduct = (request, response, next) => {
     })
 };
 exports.getProducts = (request, response, next) => {
-    request.user.getProducts().then(products => {
+    Product.fetchAll()
+    .then(products => {console.log(products);
         response.render("admin/products", {products: products, pageTitle: "Products", path: "/admin/products"});
     })
     .catch(err => {
