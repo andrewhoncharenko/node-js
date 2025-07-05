@@ -1,14 +1,18 @@
 const Product = require("../models/product");
 
 exports.getAddProduct = (request, response, next) => {
-    response.render("admin/add-product", {pageTitle: "Add Product", path: "/admin/add-product"});
+    response.render("admin/add-product", {
+        pageTitle: "Add Product",
+        path: "/admin/add-product",
+        isAuthenticated: request.session.userId ? true : false
+    });
 };
 exports.postAddProduct = (request, response, next) => {
     const title = request.body.title;
     const imageUrl = request.body.imageUrl;
     const price = request.body.price;
     const description = request.body.description;
-    const product = new Product({title: title, price: price, description: description, imageUrl: imageUrl, userId: request.user});
+    const product = new Product({title: title, price: price, description: description, imageUrl: imageUrl, userId: request.session.userId});
     product.save()
     .then(() => {
         response.redirect("/admin/products");
@@ -26,7 +30,12 @@ exports.getEditProduct = (request, response, next) => {
     }
     Product.findById(productId).then(product => {
         if(product) {
-            response.render("admin/edit-product", {pageTitle: "Edit Product", path: "/admin/edit-product", product: product});
+            response.render("admin/edit-product", {
+                pageTitle: "Edit Product",
+                path: "/admin/edit-product",
+                product: product,
+                isAuthenticated: request.session.userId ? true : false
+            });
         }
         else {
             response.redirect("/");
@@ -65,7 +74,12 @@ exports.postDeleteProduct = (request, response, next) => {
 exports.getProducts = (request, response, next) => {
     Product.find()
     .then(products => {
-        response.render("admin/products", {products: products, pageTitle: "Products", path: "/admin/products"});
+        response.render("admin/products", {
+            products: products,
+            pageTitle: "Products",
+            path: "/admin/products",
+            isAuthenticated: request.session.userId ? true : false
+        });
     })
     .catch(err => {
         console.log(err)

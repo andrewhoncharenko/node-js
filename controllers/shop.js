@@ -1,33 +1,36 @@
 const Product = require("../models/product");
 const Order = require("../models/order");
+const User = require("../models/user");
 
 exports.getIndex = (request, response, next) => {
     Product.find().then(products => {
-        response.render("shop/index", {products: products, pageTitle: "Shop", path: "/"});
+        response.render("shop/index", { products: products, pageTitle: "Shop", path: "/", isAuthenticated: request.session.userId ? true : false });
     });
 };
 exports.getProducts = (request, response, next) => {
     Product.find().then(products => {
-        response.render("shop/product-list", {products: products, pageTitle: "Shop", path: "/products"});
+        response.render("shop/product-list", { products: products, pageTitle: "Shop", path: "/products", isAuthenticated: request.session.userId ? true : false });
     });
 };
 exports.getProduct = (request, response, next) => {
     const productId = request.params.productId;
     Product.findById(productId).then(product => {
-        response.render("shop/product-detail", {pageTitle: product.title, product: product, path: product.id});
+        response.render("shop/product-detail", {pageTitle: product.title, product: product, path: product.id, isAuthenticated: request.session.userId ? true : false });
     });
 };
 exports.getCart = (request, response, next) => {
-    request.user.populate("cart.items.productId")
+    User.findById(request.session.userId).populate("cart.items.productId")
     .then(user => {
         const products = user.cart.items;
-        response.render("shop/cart", {pageTitle: "Your cart", path: "/cart", products: products});
+        response.render("shop/cart", {pageTitle: "Your cart", path: "/cart", products: products, isAuthenticated: request.session.userId ? true : false });
     });
 };
 exports.postCart = (request, response, next) => {
     const productId = request.body.productId;
     Product.findById(productId).then(product => {
-        return request.user.addToCart(product);
+        return User.findById(request.session.userId).then(user => {
+            user.addToCart(product);
+        });
     })
     .then(() => {
         response.redirect("/cart");
@@ -45,7 +48,7 @@ exports.postCartDeleteProduct = (request, response, next) => {
     });
 };
 exports.postOrder = (request, response, next) => {
-    request.user.populate("cart.items.productId").then(user => {
+    User.findById(request.session.userId).populate("cart.items.productId").then(user => {
         const products = request.user.cart.items.map(item => {
             return { product: item.productId, quantity: item.quantity };
         });
@@ -65,14 +68,15 @@ exports.postOrder = (request, response, next) => {
     });
 };
 exports.getOrders = (request, response, next) => {
-    Order.find()
+    const userId = request.session.userId;
+    Order.find({"user.userId": userId})
     .then(orders => {
-        response.render("shop/orders", { pageTitle: "Your orders", path: "/orders", orders: orders });
+        response.render("shop/orders", { pageTitle: "Your orders", path: "/orders", orders: orders, isAuthenticated: userId ? true : false });
     })
     .catch(err => {
         console.log(err);
     });
 };
 exports.getCheckout = (request, response, next) => {
-    response.render("shop/checkout", { pageTitle: "Checkout", path: "/checkout" });
+    response.render("shop/checkout", { pageTitle: "Checkout", path: "/checkout", isAuthenticated: request.session.userId ? true : false });
 };
