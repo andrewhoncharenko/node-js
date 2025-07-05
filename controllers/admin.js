@@ -8,7 +8,7 @@ exports.postAddProduct = (request, response, next) => {
     const imageUrl = request.body.imageUrl;
     const price = request.body.price;
     const description = request.body.description;
-    const product = new Product(title, price, description, imageUrl, null, request.user._id);
+    const product = new Product({title: title, price: price, description: description, imageUrl: imageUrl, userId: request.user});
     product.save()
     .then(() => {
         response.redirect("/admin/products");
@@ -39,9 +39,14 @@ exports.postEditProduct = (request, response, next) => {
     const updatedImageUrl = request.body.imageUrl;
     const updatedPrice = request.body.price;
     const updatedDescription = request.body.description;
-    const product = new Product(updatedTitle, updatedPrice, updatedDescription, updatedImageUrl, productId);
-
-    product.save()
+    Product.findById(productId)
+    .then(product => {
+        product.title = updatedTitle;
+        product.price = updatedPrice;
+        product.description = updatedDescription;
+        product.imageUrl = updatedImageUrl;
+        return product.save();
+    })
     .then(() => {
         response.redirect("/admin/products");
     })
@@ -49,7 +54,7 @@ exports.postEditProduct = (request, response, next) => {
 };
 exports.postDeleteProduct = (request, response, next) => {
     const productId = request.body.productId;
-    Product.deleteById(productId)
+    Product.findByIdAndDelete(productId)
     .then(() => {
         response.redirect("/admin/products");
     })
@@ -58,8 +63,8 @@ exports.postDeleteProduct = (request, response, next) => {
     })
 };
 exports.getProducts = (request, response, next) => {
-    Product.fetchAll()
-    .then(products => {console.log(products);
+    Product.find()
+    .then(products => {
         response.render("admin/products", {products: products, pageTitle: "Products", path: "/admin/products"});
     })
     .catch(err => {
