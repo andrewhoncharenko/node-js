@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const csrf = require("csurf");
 const flash = require("connect-flash");
+const multer = require("multer");
 
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
@@ -23,13 +24,31 @@ const store = new MongoDBStore({
     uri: MONGODB_URI,
     collection: "sessions",
 });
-const csrfProtection = csrf({ cookie: true })
+const csrfProtection = csrf({ cookie: true });
+const fileStorage = multer.diskStorage({
+    destination: (request, file, callback) => {
+        callback(null, "images");
+    },
+    filename: (request, file, callback) => {
+        callback(null, new Date().toISOString() + '-' + file.originalname);
+    }
+});
+const fileFilter = (request, file, callback) => {
+    if(file.mimetype === "image/png" || file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") {
+        callback(null, true);
+    }
+    else {
+        callback(null, false);
+    }
+};
 
 app.set("view engine", "ejs");
 app.set("vaews", "views");
 
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(multer({storage: fileStorage, fileFilter: fileFilter}).single("image"));
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(session({
     secret: "my secret",
     resave: false,
@@ -60,6 +79,7 @@ app.use(userRoutes);
 app.use("/500", errorController.get500);
 app.use(errorController.get404);
 app.use((error, request, response, next) => {
+    console.log(error);
     response.redirect("/500");
 });
 

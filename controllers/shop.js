@@ -1,6 +1,11 @@
+const fs = require("fs");
+const path = require("path");
+const PDFDocument = require("pdfkit");
+
 const Product = require("../models/product");
 const Order = require("../models/order");
 const User = require("../models/user");
+const product = require("../models/product");
 
 exports.getIndex = (request, response, next) => {
     Product.find().then(products => {
@@ -54,17 +59,22 @@ exports.postCartDeleteProduct = (request, response, next) => {
     });
 };
 exports.postOrder = (request, response, next) => {
+    let userData;
+
     User.findById(request.session.userId).populate("cart.items.productId").then(user => {
-        const products = request.user.cart.items.map(item => {
+        const products = user.cart.items.map(item => {
             return { product: item.productId, quantity: item.quantity };
         });
         const order = new Order({
-            products: products, user: { name: request.user.name, userId: request.user }
+            products: products, user: { email: user.email, userId: user._id }
         });
+
+        userData = user;
+
         return order.save();
     })
     .then(() => {
-        return request.user.clearCart();
+        return userData.clearCart();
     })
     .then(() => {
         response.redirect("/orders");
@@ -89,4 +99,35 @@ exports.getOrders = (request, response, next) => {
 };
 exports.getCheckout = (request, response, next) => {
     response.render("shop/checkout", { pageTitle: "Checkout", path: "/checkout" });
+};
+exports.getInvoice = (request, response, next) => {
+    const orderId = request.params.orderId;
+    const invoiceName = "invoice-" + orderId + ".pdf";
+    const invoicePath = path.join("data", "invoices", invoiceName);
+    const invoicePDFDocument = new PDFDocument();
+    let totalPrice = 0;
+
+    Order.findById(orderId).then(order => {
+        if(!order) {
+            return next(new Error("No order found."));
+        }
+        if(order.user.userId.toString() !== request.session.userId) {
+            return next(new Error("Unauthorized"))
+        }
+        response.setHeader("Content-Type", "application/pdf");
+        response.setHeader("Content-Disposition", 'inline; filename="' + invoiceName + '"');
+        invoicePDFDocument.pipe(fs.createWriteStream(invoicePath));
+        invoicePDFDocument.pipe(response);
+        invoicePDFDocument.fontSize(26).text("Invoice", {
+            underline: true
+        });
+        invoicePDFDocument.text("-----------------------");
+        order.products.forEach(orderProduct => {
+            totalPrice += totalPrice + orderProduct.product.price * orderProduct.quantity;
+            invoicePDFDocument.fontSize(14).text(orderProduct.product.title + " - " + orderProduct.quantity + " x " + "$" + orderProduct.product.price);
+        });
+        invoicePDFDocument.text("---");
+        invoicePDFDocument.fontSize(20).text("Total price: $" + totalPrice);
+        invoicePDFDocument.end();
+    });
 };
